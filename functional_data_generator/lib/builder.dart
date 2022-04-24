@@ -54,6 +54,7 @@ Future<String> _generateDataType(Element element, BuildStep buildStep) async {
     final declaration = await buildStep.resolver.astNodeFor(f) as VariableDeclaration?;
     final declarationList = declaration?.parent as VariableDeclarationList?;
     final positionalIndex = positionalFields.indexOf(f.name);
+    final ignored = f.metadata.any((el) => el.computeConstantValue()?.type?.getDisplayString(withNullability: true) == (Ignore).toString());
     return Pair(
       positionalIndex == -1 ? 9999 : positionalIndex,
       Field(
@@ -61,12 +62,13 @@ Future<String> _generateDataType(Element element, BuildStep buildStep) async {
         declarationList?.type?.toSource() ?? 'dynamic',
         _getCustomEquality(f.metadata),
         isPositional: positionalIndex != -1,
+        ignored:ignored
       ),
     );
   }));
   // Using merge sort so the sorting is stable and doesn't change the order of non-positional parameters
   mergeSort<Pair<int, Field>>(fieldsWithIndex, compare: (a, b) => a.first.compareTo(b.first));
-  final fields = fieldsWithIndex.map((e) => e.second).toList();
+  final fields = fieldsWithIndex.map((e) => e.second).where((field) => !field.ignored).toList();
 
   final fieldDeclarations = fields.map((f) => '${f.type} get ${f.name};');
   final toString =
@@ -148,11 +150,12 @@ String _generateHash(Field f) {
 }
 
 class Field {
-  const Field(this.name, this.type, this.customEquality, {required this.isPositional});
+  const Field(this.name, this.type, this.customEquality, {required this.isPositional, required this.ignored});
 
   final String name;
   final String type;
   final bool isPositional;
+  final bool ignored;
 
   String get optionalType => type[type.length - 1] == '?' ? type : '$type?';
   final String? customEquality;

@@ -1,6 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:collection/collection.dart';
 import 'package:functional_data/functional_data.dart';
-import 'dart:math' as math;
 
 import 'types.dart' as my_types;
 
